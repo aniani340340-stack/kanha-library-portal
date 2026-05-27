@@ -14,7 +14,7 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY server.js ./
 
-# Create data directory for SQLite database and uploads mount
+# Create data directory for SQLite database and uploads
 RUN mkdir -p /app/data/uploads
 
 ENV PORT=5000

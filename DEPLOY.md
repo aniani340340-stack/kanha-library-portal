@@ -26,7 +26,22 @@ git push -u origin main
 1. Log in to [dashboard.render.com](https://dashboard.render.com).  
 2. Click **New +** → **Blueprint** (or **Web Service** if you prefer manual setup).  
 3. Connect your GitHub repo.  
-4. Render will read `render.yaml` and create the web service with a **persistent disk** for the database and photos.
+4. Render will read `render.yaml` and create the web service on the **free** plan.
+
+Important: Render free web services do **not** support persistent disks. This project can deploy on the free plan now, but SQLite data and uploaded photos are stored on the service filesystem and can be lost when Render restarts or redeploys the service.
+
+If you need student records and photos to stay permanently online, use a paid Render instance with a disk, or move the database/photos to hosted services.
+
+### Optional paid persistent disk
+
+If you upgrade the Render service to a paid plan, you can add this block back under the service in `render.yaml`:
+
+```yaml
+    disk:
+      name: kanha-library-data
+      mountPath: /app/data
+      sizeGB: 1
+```
 
 ## Step 3 — Set admin login (important)
 
@@ -82,7 +97,7 @@ Change these in a `.env` file (copy from `.env.example`) before sharing the app.
 
 ## Notes
 
-- **Free tier**: The app may sleep after ~15 minutes of no use; the first visit can take ~30 seconds to wake up.  
-- **Data never lost on refresh**: All students, payments, and **deleted students** are stored in SQLite on Render’s **persistent disk** (`/app/data`). Refreshing the browser or redeploying the app does **not** erase data — only deleting the Render disk would.  
+- **Free tier**: The app may sleep after ~15 minutes of no use; the first visit can take ~30 seconds to wake up. Free services do not support persistent disks.  
+- **Data on free Render**: Data stays while the same running instance keeps its filesystem, but it can be lost after restarts or redeploys. For permanent online data, use a paid Render disk or an external database/storage service.  
 - **Deleted students**: Removing someone from the directory saves them under **Deleted Students** in the sidebar (not erased).  
 - **Backup**: Periodically download `data/db.sqlite` from the server if you need a backup.

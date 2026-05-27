@@ -720,6 +720,6 @@ if (fs.existsSync(buildPath)) {
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Database (persistent): ${DB_PATH}`);
+  console.log(`Database: ${DB_PATH}`);
   console.log(`Admin WhatsApp alerts: ${ADMIN_WHATSAPP}${CALLMEBOT_API_KEY ? ' (CallMeBot enabled)' : ' (set CALLMEBOT_API_KEY to enable)'}`);
 });
