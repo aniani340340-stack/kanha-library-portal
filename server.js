@@ -546,6 +546,39 @@ app.delete(
 );
 
 /* =========================
+   Permanent Delete (Archive only)
+========================= */
+
+app.delete(
+  '/api/students/:id/permanent',
+  async (req, res) => {
+    try {
+      const student =
+        await Student.findOneAndDelete({
+          _id: req.params.id,
+          archived: true
+        });
+
+      if (!student) {
+        return res.status(404).json({
+          error:
+            'Archived student not found'
+        });
+      }
+
+      res.json({
+        message:
+          'Student permanently deleted'
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err.message
+      });
+    }
+  }
+);
+
+/* =========================
    Archived Students
 ========================= */
 
