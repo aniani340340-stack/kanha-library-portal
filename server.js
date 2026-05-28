@@ -17,6 +17,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const PORT = process.env.PORT || 5000;
+const DIST_DIR = path.join(__dirname, 'dist');
+const DIST_INDEX = path.join(DIST_DIR, 'index.html');
 
 app.use(cors());
 app.use(express.json());
@@ -50,6 +52,10 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 app.use('/uploads', express.static(UPLOADS_DIR));
+
+if (fs.existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+}
 
 /* =========================
    Multer Config
@@ -91,7 +97,15 @@ function calculateExpiryDate(startDateStr, months) {
    Routes
 ========================= */
 
+app.get('/api/health', (req, res) => {
+  res.send('Kanha Library Portal API Running');
+});
+
 app.get('/', (req, res) => {
+  if (fs.existsSync(DIST_INDEX)) {
+    return res.sendFile(DIST_INDEX);
+  }
+
   res.send('Kanha Library Portal API Running');
 });
 
@@ -255,6 +269,18 @@ app.get('/api/students/archived', async (req, res) => {
     });
   }
 });
+
+if (fs.existsSync(DIST_INDEX)) {
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({
+        error: 'API route not found'
+      });
+    }
+
+    res.sendFile(DIST_INDEX);
+  });
+}
 
 /* =========================
    Start Server
