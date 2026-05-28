@@ -12,6 +12,8 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      - key: MONGODB_URI
+        sync: false
       - key: ADMIN_WHATSAPP
         value: "919828130420"
       - key: CALLMEBOT_API_KEY
