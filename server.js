@@ -154,6 +154,72 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function formatDateInIndia(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+function getAdminExpiryMessage(student) {
+  const expiryDate = new Date(student.expiry_date);
+  const isExpired = expiryDate < new Date();
+  const pendingAmount = Number(student.total_fees || 0) - Number(student.amount_paid || 0);
+
+  return `KANHA STUDY LIBRARY ADMIN ALERT
+
+Student subscription ${isExpired ? 'expired' : 'expiring soon'}.
+
+Name: ${student.name}
+Seat: ${student.seat_number}
+Phone: ${student.phone}
+WhatsApp: ${student.whatsapp}
+Parent/Emergency: ${student.parent_phone || 'Not provided'}
+
+Start Date: ${formatDateInIndia(student.start_date)}
+Expiry Date: ${formatDateInIndia(student.expiry_date)}
+Status: ${isExpired ? 'Expired' : 'Expiring soon'}
+
+Total Fees: Rs. ${student.total_fees || 0}
+Amount Paid: Rs. ${student.amount_paid || 0}
+Pending Fees: Rs. ${pendingAmount > 0 ? pendingAmount : 0}
+Fee Status: ${student.fee_status || 'Not set'}
+Remarks: ${student.remarks || 'None'}`;
+}
+
+async function sendTelegramMessage(message) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!botToken || !chatId) {
+    return {
+      sent: false,
+      reason: 'TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not configured'
+    };
+  }
+
+  const url = new URL(`https://api.telegram.org/bot${botToken}/sendMessage`);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message
+    })
+  });
+
+  const body = await response.json().catch(() => null);
+
+  return {
+    sent: response.ok,
+    status: response.status,
+    body
+  };
+}
+
 /* =========================
    Routes
 ========================= */
@@ -423,11 +489,35 @@ app.delete('/api/students/:id', async (req, res) => {
 
     student.archived = true;
     student.archived_at = new Date();
+    student.original_seat_number = student.original_seat_number || student.seat_number;
 
     await student.save();
 
     res.json({
       message: 'Student archived successfully'
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
+
+app.delete('/api/students/:id/permanent', async (req, res) => {
+  try {
+    const student = await Student.findOneAndDelete({
+      _id: req.params.id,
+      archived: true
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Archived student not found'
+      });
+    }
+
+    res.json({
+      message: 'Student permanently deleted'
     });
   } catch (err) {
     res.status(500).json({
@@ -487,16 +577,56 @@ app.put('/api/students/:id/restore', async (req, res) => {
 
 app.get('/api/notifications', (req, res) => {
   res.json({
-    whatsappConfigured: Boolean(process.env.CALLMEBOT_API_KEY),
-    adminWhatsApp: process.env.ADMIN_WHATSAPP || '',
+    telegramConfigured: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+    telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
     notifications: []
   });
 });
 
-app.post('/api/notifications/check-expiry', (req, res) => {
-  res.json({
-    message: 'Expiry check completed'
-  });
+app.post('/api/notifications/check-expiry', async (req, res) => {
+  try {
+    if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+      return res.status(400).json({
+        error: 'TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required'
+      });
+    }
+
+    const today = new Date();
+    const warningThreshold = new Date();
+    warningThreshold.setDate(today.getDate() + 3);
+
+    const students = await Student.find({
+      archived: false
+    });
+
+    const dueStudents = students.filter((student) => {
+      const expiryDate = new Date(student.expiry_date);
+      return expiryDate <= warningThreshold;
+    });
+
+    const results = [];
+
+    for (const student of dueStudents) {
+      const result = await sendTelegramMessage(getAdminExpiryMessage(student));
+
+      results.push({
+        student_id: student.id,
+        student_name: student.name,
+        sent: result.sent,
+        status: result.status,
+        error: result.sent ? null : result.reason || result.body?.description || 'Failed to send'
+      });
+    }
+
+    res.json({
+      message: `Expiry check completed. ${results.filter((r) => r.sent).length}/${results.length} Telegram alerts sent.`,
+      notifications: results
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
 });
 
 if (fs.existsSync(DIST_INDEX)) {

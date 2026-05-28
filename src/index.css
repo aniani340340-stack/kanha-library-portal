@@ -793,6 +793,200 @@ body {
   background: rgba(255, 255, 255, 0.01);
 }
 
+/* Deleted students archive */
+.archive-page {
+  min-height: 500px;
+}
+
+.archive-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.35rem;
+  max-width: 980px;
+}
+
+.archive-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 420px;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.7rem 1rem 0.7rem 2.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font: inherit;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.search-box input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.15);
+}
+
+.search-box input::placeholder {
+  color: #6b7280;
+}
+
+.archive-count {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.archive-table-container {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.data-table th {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
+  width: 24%;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  width: 18%;
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+  width: 14%;
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4),
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  width: 16%;
+}
+
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) {
+  width: 12%;
+  text-align: right;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.archive-name-cell {
+  color: #fff;
+  font-weight: 700;
+}
+
+.archive-date-cell {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.action-buttons {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.icon-btn:hover {
+  border-color: var(--color-info);
+  color: var(--color-info);
+  background: rgba(0, 176, 255, 0.1);
+}
+
+.icon-btn.danger:hover {
+  border-color: var(--color-expired);
+  color: var(--color-expired);
+  background: rgba(255, 56, 96, 0.12);
+}
+
+@media (max-width: 768px) {
+  .archive-page {
+    padding: 1rem;
+  }
+
+  .archive-toolbar {
+    align-items: stretch;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .archive-count {
+    width: 100%;
+  }
+}
+
 /* Detail Card view styling */
 .detail-grid {
   display: grid;

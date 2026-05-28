@@ -93,18 +93,27 @@ function Settings({ stats, onAddToast, onDataChange }) {
 
       <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
         <h4 style={{ marginBottom: '0.75rem', fontFamily: 'var(--font-header)', color: '#fff' }}>
-          WhatsApp alerts (package ended)
+          Telegram admin alerts
         </h4>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-          When a student&apos;s subscription ends, an alert is sent to your WhatsApp{' '}
+          When a student&apos;s subscription ends or is close to ending, an admin alert can be sent to your Telegram chat.
+          {false && (
           <strong style={{ color: '#fff' }}>9828130420</strong> automatically (via CallMeBot — one-time free setup in DEPLOY.md).
+          )}
         </p>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          <div>Status:{' '}
+            <span style={{ color: notifInfo?.telegramConfigured ? 'var(--color-active)' : 'var(--color-warning)' }}>
+              {notifInfo?.telegramConfigured ? 'Connected' : 'Not configured - add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID on host'}
+            </span>
+          </div>
+          {false && (
           <div>Status:{' '}
             <span style={{ color: notifInfo?.whatsappConfigured ? 'var(--color-active)' : 'var(--color-warning)' }}>
               {notifInfo?.whatsappConfigured ? 'Connected' : 'Not configured — add CALLMEBOT_API_KEY on host'}
             </span>
           </div>
+          )}
           {notifInfo?.notifications?.length > 0 && (
             <p style={{ marginTop: '0.5rem' }}>
               Last alert: {notifInfo.notifications[0].student_name || '—'} —{' '}

@@ -92,17 +92,17 @@ function ArchivedStudents({ onAddToast, onDataChange }) {
   const displaySeat = (s) => s.original_seat_number || s.seat_number;
 
   return (
-    <div className="glass panel-card">
+    <div className="glass panel-card archive-page">
       <div className="panel-header">
         <h2 className="panel-title">
           <Archive /> Deleted Students Archive
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.35rem' }}>
+        <p className="archive-subtitle">
           Removed students are saved here permanently. Data stays in the database even after refresh or redeploy (on hosted disk).
         </p>
       </div>
 
-      <div className="toolbar" style={{ marginTop: '1.25rem' }}>
+      <div className="archive-toolbar">
         <div className="search-box">
           <Search size={18} />
           <input
@@ -112,7 +112,7 @@ function ArchivedStudents({ onAddToast, onDataChange }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+        <span className="archive-count">
           {filtered.length} saved record{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -124,7 +124,7 @@ function ArchivedStudents({ onAddToast, onDataChange }) {
           No deleted students yet. When you remove someone from the directory, they appear here.
         </p>
       ) : (
-        <div className="table-container" style={{ marginTop: '1rem' }}>
+        <div className="table-container archive-table-container">
           <table className="data-table">
             <thead>
               <tr>
@@ -139,11 +139,13 @@ function ArchivedStudents({ onAddToast, onDataChange }) {
             <tbody>
               {filtered.map((student) => (
                 <tr key={student.id}>
-                  <td style={{ fontWeight: 600 }}>{student.name}</td>
+                  <td className="archive-name-cell">{student.name}</td>
                   <td>{student.phone}</td>
-                  <td>Seat {displaySeat(student)}</td>
+                  <td>
+                    <span className="seat-tag">Seat {displaySeat(student)}</span>
+                  </td>
                   <td>{student.expiry_date}</td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <td className="archive-date-cell">
                     {student.archived_at
                       ? new Date(student.archived_at).toLocaleDateString('en-IN')
                       : '—'}
