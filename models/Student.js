@@ -1,0 +1,75 @@
+import mongoose from 'mongoose';
+
+const studentSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true
+    },
+
+    phone: {
+      type: String,
+      required: true
+    },
+
+    whatsapp: {
+      type: String,
+      required: true
+    },
+
+    parent_phone: String,
+
+    seat_number: {
+      type: String,
+      required: true
+    },
+
+    photo_path: String,
+
+    duration: Number,
+
+    start_date: String,
+
+    expiry_date: String,
+
+    rate: Number,
+
+    discount: {
+      type: Number,
+      default: 0
+    },
+
+    total_fees: Number,
+
+    fee_status: {
+      type: String,
+      default: 'Unpaid'
+    },
+
+    amount_paid: {
+      type: Number,
+      default: 0
+    },
+
+    remarks: String,
+
+    status: {
+      type: String,
+      default: 'Active'
+    },
+
+    archived: {
+      type: Boolean,
+      default: false
+    },
+
+    archived_at: String,
+
+    original_seat_number: String
+  },
+  {
+    timestamps: true
+  }
+);
+
+export default mongoose.model('Student', studentSchema);
