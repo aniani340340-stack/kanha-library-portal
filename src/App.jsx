@@ -97,9 +97,8 @@ function Settings({ stats, onAddToast, onDataChange }) {
         </h4>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
           When a student&apos;s subscription ends or is close to ending, an admin alert can be sent to your Telegram chat.
-          {false && (
-          <strong style={{ color: '#fff' }}>9828130420</strong> automatically (via CallMeBot — one-time free setup in DEPLOY.md).
-          )}
+          {/* WhatsApp section disabled to avoid build issues on Vite/JSX.
+              Enable later if you want CALLMEBOT_API_KEY integration. */}
         </p>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <div>Status:{' '}
