@@ -68,7 +68,16 @@ const studentSchema = new mongoose.Schema(
     original_seat_number: String
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        return ret;
+      }
+    }
   }
 );
 

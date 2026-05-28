@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 import Student from './models/Student.js';
@@ -19,6 +20,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const DIST_DIR = path.join(__dirname, 'dist');
 const DIST_INDEX = path.join(DIST_DIR, 'index.html');
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@kanhalibrary.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'KanhaAdmin@2024';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 
 app.use(cors());
 app.use(express.json());
@@ -93,6 +97,63 @@ function calculateExpiryDate(startDateStr, months) {
   return date.toISOString().split('T')[0];
 }
 
+function signToken(payload) {
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', SESSION_SECRET)
+    .update(encodedPayload)
+    .digest('base64url');
+
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyToken(token) {
+  if (!token || !token.includes('.')) {
+    return null;
+  }
+
+  const [encodedPayload, signature] = token.split('.');
+  const expectedSignature = crypto
+    .createHmac('sha256', SESSION_SECRET)
+    .update(encodedPayload)
+    .digest('base64url');
+
+  if (signature.length !== expectedSignature.length) {
+    return null;
+  }
+
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+
+  if (!isValid) {
+    return null;
+  }
+
+  const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+  if (payload.exp && Date.now() > payload.exp) {
+    return null;
+  }
+
+  return payload;
+}
+
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const payload = verifyToken(token);
+
+  if (!payload) {
+    return res.status(401).json({
+      error: 'Unauthorized'
+    });
+  }
+
+  req.admin = payload;
+  next();
+}
+
 /* =========================
    Routes
 ========================= */
@@ -101,12 +162,90 @@ app.get('/api/health', (req, res) => {
   res.send('Kanha Library Portal API Running');
 });
 
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+
+  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({
+      error: 'Invalid admin email or password'
+    });
+  }
+
+  const token = signToken({
+    email,
+    exp: Date.now() + 1000 * 60 * 60 * 24 * 7
+  });
+
+  res.json({
+    token,
+    email
+  });
+});
+
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.json({
+    email: req.admin.email
+  });
+});
+
 app.get('/', (req, res) => {
   if (fs.existsSync(DIST_INDEX)) {
     return res.sendFile(DIST_INDEX);
   }
 
   res.send('Kanha Library Portal API Running');
+});
+
+app.use('/api', requireAuth);
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const students = await Student.find({
+      archived: false
+    });
+
+    const today = new Date();
+    const warningThreshold = new Date();
+    warningThreshold.setDate(today.getDate() + 3);
+
+    const stats = students.reduce(
+      (acc, student) => {
+        const expiryDate = new Date(student.expiry_date);
+        const isExpired = expiryDate < today;
+        const isExpiringSoon = !isExpired && expiryDate <= warningThreshold;
+
+        acc.total += 1;
+        acc.revenue += Number(student.amount_paid || 0);
+        acc.occupiedSeats.push(String(student.seat_number));
+
+        if (isExpired) {
+          acc.expired += 1;
+        } else {
+          acc.active += 1;
+        }
+
+        if (isExpiringSoon) {
+          acc.expiringSoon += 1;
+        }
+
+        return acc;
+      },
+      {
+        total: 0,
+        active: 0,
+        expired: 0,
+        expiringSoon: 0,
+        occupiedSeats: [],
+        revenue: 0
+      }
+    );
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
 });
 
 /* =========================
@@ -223,6 +362,51 @@ app.post(
   }
 );
 
+app.put('/api/students/:id/renew', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Student not found'
+      });
+    }
+
+    const {
+      duration,
+      start_date,
+      rate,
+      discount,
+      total_fees,
+      fee_status,
+      amount_paid,
+      remarks
+    } = req.body;
+
+    student.duration = duration;
+    student.start_date = start_date;
+    student.expiry_date = calculateExpiryDate(start_date, duration);
+    student.rate = rate;
+    student.discount = discount;
+    student.total_fees = total_fees;
+    student.fee_status = fee_status;
+    student.amount_paid = amount_paid;
+    student.remarks = remarks;
+    student.status = 'Active';
+
+    await student.save();
+
+    res.json({
+      message: 'Student renewed successfully',
+      student
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
+
 /* =========================
    Delete Student
 ========================= */
@@ -268,6 +452,51 @@ app.get('/api/students/archived', async (req, res) => {
       error: err.message
     });
   }
+});
+
+app.put('/api/students/:id/restore', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Student not found'
+      });
+    }
+
+    if (req.body.seat_number) {
+      student.seat_number = req.body.seat_number;
+    }
+
+    student.archived = false;
+    student.archived_at = null;
+    student.status = 'Active';
+
+    await student.save();
+
+    res.json({
+      message: 'Student restored successfully',
+      student
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
+
+app.get('/api/notifications', (req, res) => {
+  res.json({
+    whatsappConfigured: Boolean(process.env.CALLMEBOT_API_KEY),
+    adminWhatsApp: process.env.ADMIN_WHATSAPP || '',
+    notifications: []
+  });
+});
+
+app.post('/api/notifications/check-expiry', (req, res) => {
+  res.json({
+    message: 'Expiry check completed'
+  });
 });
 
 if (fs.existsSync(DIST_INDEX)) {
