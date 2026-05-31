@@ -10,6 +10,8 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
   const [parentPhone, setParentPhone] = useState('');
   const [seatNumber, setSeatNumber] = useState('');
   const [duration, setDuration] = useState('1');
+  const [seatType, setSeatType] = useState('morning');
+  const [seatTime, setSeatTime] = useState('morning');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [rate, setRate] = useState('1000'); // default monthly rate
   const [discount, setDiscount] = useState('0');
@@ -146,6 +148,8 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
     formData.append('parent_phone', parentPhone);
     formData.append('seat_number', seatNumber.trim());
     formData.append('duration', duration);
+    formData.append('seat_type', seatType);
+    formData.append('seat_time', seatTime);
     formData.append('start_date', startDate);
     formData.append('rate', rate);
     formData.append('discount', discount);
@@ -278,6 +282,37 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
                   onChange={(e) => setSeatNumber(e.target.value)}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label htmlFor="seatType">Seat Type *</label>
+                <select
+                  id="seatType"
+                  className="form-control"
+                  value={seatType}
+                  onChange={e => setSeatType(e.target.value)}
+                  required
+                >
+                  <option value="morning">Only Morning</option>
+                  <option value="evening">Only Evening</option>
+                  <option value="both">Both (Shared)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="seatTime">Seat Time *</label>
+                <select
+                  id="seatTime"
+                  className="form-control"
+                  value={seatTime}
+                  onChange={e => setSeatTime(e.target.value)}
+                  required
+                  disabled={seatType === 'both'}
+                >
+                  <option value="morning">Morning</option>
+                  <option value="evening">Evening</option>
+                </select>
+                <small style={{ color: 'var(--text-muted)' }}>
+                  {seatType === 'both' ? 'Both timings will be assigned (shared seat)' : 'Select timing for this seat'}
+                </small>
               </div>
             </div>
 

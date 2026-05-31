@@ -551,6 +551,21 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* Morning / Evening seat colors (requested) */
+.seat-node.occupied-morning {
+  background: rgba(255, 184, 0, 0.15);
+  border: 2px solid rgba(255, 184, 0, 0.9);
+  color: #ffb800;
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.18);
+}
+
+.seat-node.occupied-evening {
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+
 .seat-node {
   height: 65px;
   border-radius: 8px;

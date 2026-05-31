@@ -19,10 +19,35 @@ const studentSchema = new mongoose.Schema(
 
     parent_phone: String,
 
+
     seat_number: {
       type: String,
       required: true
     },
+
+    seat_type: {
+      type: String,
+      enum: ['morning', 'evening', 'both'],
+      default: 'morning',
+      required: true
+    },
+
+    // For shared seats, allow two students per seat (morning/evening)
+    seat_time: {
+      type: String,
+      enum: ['morning', 'evening'],
+      required: true
+    },
+
+    // Payment records per month
+    payments: [
+      {
+        month: String, // e.g. '2026-06'
+        amount: Number,
+        paid_on: String, // date string
+        remarks: String
+      }
+    ],
 
     photo_path: String,
 
