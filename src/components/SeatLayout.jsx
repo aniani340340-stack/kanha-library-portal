@@ -40,11 +40,13 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
   const getMorningEveningOccupantsForSeat = (seatNum) => {
     const seatStudents = getSeatByNumber(seatNum);
 
+    // seat_time is required in schema, but defensively guard because some existing records
+    // may be missing fields.
     const morning = seatStudents.find(
-      (s) => s.seat_time === 'morning' || s.seat_type === 'both'
+      (s) => s?.seat_time === 'morning' || s?.seat_type === 'both'
     );
     const evening = seatStudents.find(
-      (s) => s.seat_time === 'evening' || s.seat_type === 'both'
+      (s) => s?.seat_time === 'evening' || s?.seat_type === 'both'
     );
 
     const hasMorning = Boolean(morning);
@@ -64,27 +66,49 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
       getMorningEveningOccupantsForSeat(seatNum);
 
     if (!hasMorning && !hasEvening) {
-      return { mode: 'vacant', primaryClass: 'vacant' };
+      return { mode: 'vacant', primaryClass: 'vacant', showHalf: false };
+    }
+
+    // Half/Shared seat visuals: show half orange + half black regardless of expiry
+    if (isShared) {
+      if (sessionFilter === 'morning') {
+        return {
+          mode: 'occupied',
+          primaryClass: 'occupied-morning',
+          showHalf: true,
+          halfClasses: ['occupied-morning', 'occupied-evening']
+        };
+      }
+      if (sessionFilter === 'evening') {
+        return {
+          mode: 'occupied',
+          primaryClass: 'occupied-evening',
+          showHalf: true,
+          halfClasses: ['occupied-morning', 'occupied-evening']
+        };
+      }
+
+      return {
+        mode: 'occupied',
+        primaryClass: 'occupied-morning',
+        showHalf: true,
+        halfClasses: ['occupied-morning', 'occupied-evening']
+      };
     }
 
     if (sessionFilter === 'morning') {
-      if (!hasMorning) return { mode: 'vacant', primaryClass: 'vacant' };
-      return { mode: 'occupied', primaryClass: 'occupied-morning', isShared };
+      if (!hasMorning) return { mode: 'vacant', primaryClass: 'vacant', showHalf: false };
+      return { mode: 'occupied', primaryClass: 'occupied-morning', showHalf: false };
     }
 
     if (sessionFilter === 'evening') {
-      if (!hasEvening) return { mode: 'vacant', primaryClass: 'vacant' };
-      return { mode: 'occupied', primaryClass: 'occupied-evening', isShared };
+      if (!hasEvening) return { mode: 'vacant', primaryClass: 'vacant', showHalf: false };
+      return { mode: 'occupied', primaryClass: 'occupied-evening', showHalf: false };
     }
 
-    // all
-    if (isShared) {
-      // show morning color by default (orange)
-      return { mode: 'occupied', primaryClass: 'occupied-morning', isShared };
-    }
-
-    if (hasMorning) return { mode: 'occupied', primaryClass: 'occupied-morning', isShared };
-    return { mode: 'occupied', primaryClass: 'occupied-evening', isShared };
+    // all (not shared)
+    if (hasMorning) return { mode: 'occupied', primaryClass: 'occupied-morning', showHalf: false };
+    return { mode: 'occupied', primaryClass: 'occupied-evening', showHalf: false };
   };
 
 
@@ -255,7 +279,9 @@ _Kanha Library Management_ 📖`;
             return (
               <div
                 key={`top-${seatNum}`}
-                className={`seat-node ${renderState.primaryClass} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                className={`seat-node ${renderState.primaryClass} ${renderState.showHalf ? 'seat-half' : ''} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                data-half-left={renderState?.halfClasses?.[0] || ''}
+                data-half-right={renderState?.halfClasses?.[1] || ''}
                 onClick={() => handleSeatClick(seatNum)}
               >
                 <div>Seat {seatNum}</div>
@@ -281,7 +307,9 @@ _Kanha Library Management_ 📖`;
             return (
               <div
                 key={`mid-${seatNum}`}
-                className={`seat-node ${renderState.primaryClass} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                className={`seat-node ${renderState.primaryClass} ${renderState.showHalf ? 'seat-half' : ''} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                data-half-left={renderState?.halfClasses?.[0] || ''}
+                data-half-right={renderState?.halfClasses?.[1] || ''}
                 onClick={() => handleSeatClick(seatNum)}
               >
                 <div>Seat {seatNum}</div>
@@ -307,7 +335,9 @@ _Kanha Library Management_ 📖`;
             return (
               <div
                 key={`bot-${seatNum}`}
-                className={`seat-node ${renderState.primaryClass} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                className={`seat-node ${renderState.primaryClass} ${renderState.showHalf ? 'seat-half' : ''} ${studentToShow ? urgencyClassForStudent(studentToShow) : ''}`}
+                data-half-left={renderState?.halfClasses?.[0] || ''}
+                data-half-right={renderState?.halfClasses?.[1] || ''}
                 onClick={() => handleSeatClick(seatNum)}
               >
                 <div>Seat {seatNum}</div>

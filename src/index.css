@@ -551,6 +551,47 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* Shared seat visual: half-left morning, half-right evening */
+.seat-node.seat-half {
+  position: relative;
+  overflow: hidden;
+}
+
+.seat-node.seat-half::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 0;
+}
+
+.seat-node.seat-half {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.seat-node.seat-half::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 184, 0, 0.25) 0%,
+    rgba(255, 184, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  z-index: 0;
+}
+
+.seat-node.seat-half > div {
+  position: relative;
+  z-index: 1;
+}
+
+
 /* Morning / Evening seat colors (requested) */
 .seat-node.occupied-morning {
   background: rgba(255, 184, 0, 0.15);
