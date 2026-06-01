@@ -28,31 +28,49 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
   };
 
   const urgencyClassForStudent = (student) => {
+    if (!student) return '';
     const today = new Date();
     const expiry = new Date(student.expiry_date);
     const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
     if (student.status === 'Expired' || daysLeft < 0) return 'occupied-expired';
     if (daysLeft >= 0 && daysLeft <= 3) return 'occupied-warning';
-    return 'occupied-active';
+    return '';
   };
 
-  const getMorningEveningOccupantsForSeat = (seatNum) => {
+  const getOccupantsForSeat = (seatNum) => {
     const seatStudents = getSeatByNumber(seatNum);
 
-    // seat_time is required in schema, but defensively guard because some existing records
-    // may be missing fields.
+    // Find if there is a full-time student
+    const fullTimeStudent = seatStudents.find(
+      (s) => s?.seat_type === 'full' || s?.seat_time === 'full' || s?.seat_type === 'both'
+    );
+
+    if (fullTimeStudent) {
+      return {
+        isFull: true,
+        fullTimeStudent,
+        hasMorning: false,
+        hasEvening: false,
+        morningStudent: null,
+        eveningStudent: null,
+        isShared: false
+      };
+    }
+
     const morning = seatStudents.find(
-      (s) => s?.seat_time === 'morning' || s?.seat_type === 'both'
+      (s) => s?.seat_time === 'morning' || s?.seat_type === 'morning'
     );
     const evening = seatStudents.find(
-      (s) => s?.seat_time === 'evening' || s?.seat_type === 'both'
+      (s) => s?.seat_time === 'evening' || s?.seat_type === 'evening'
     );
 
     const hasMorning = Boolean(morning);
     const hasEvening = Boolean(evening);
 
     return {
+      isFull: false,
+      fullTimeStudent: null,
       hasMorning,
       hasEvening,
       morningStudent: morning || null,
@@ -62,35 +80,36 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
   };
 
   const getSeatRenderState = (seatNum) => {
-    const { hasMorning, hasEvening, isShared } =
-      getMorningEveningOccupantsForSeat(seatNum);
+    const { isFull, hasMorning, hasEvening, isShared } =
+      getOccupantsForSeat(seatNum);
+
+    if (isFull) {
+      return { mode: 'occupied', primaryClass: 'occupied-full', showHalf: false };
+    }
 
     if (!hasMorning && !hasEvening) {
       return { mode: 'vacant', primaryClass: 'vacant', showHalf: false };
     }
 
-    // Half/Shared seat visuals: show half orange + half black regardless of expiry
     if (isShared) {
       if (sessionFilter === 'morning') {
         return {
           mode: 'occupied',
           primaryClass: 'occupied-morning',
-          showHalf: true,
-          halfClasses: ['occupied-morning', 'occupied-evening']
+          showHalf: false
         };
       }
       if (sessionFilter === 'evening') {
         return {
           mode: 'occupied',
           primaryClass: 'occupied-evening',
-          showHalf: true,
-          halfClasses: ['occupied-morning', 'occupied-evening']
+          showHalf: false
         };
       }
 
       return {
         mode: 'occupied',
-        primaryClass: 'occupied-morning',
+        primaryClass: 'seat-half',
         showHalf: true,
         halfClasses: ['occupied-morning', 'occupied-evening']
       };
@@ -106,7 +125,6 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
       return { mode: 'occupied', primaryClass: 'occupied-evening', showHalf: false };
     }
 
-    // all (not shared)
     if (hasMorning) return { mode: 'occupied', primaryClass: 'occupied-morning', showHalf: false };
     return { mode: 'occupied', primaryClass: 'occupied-evening', showHalf: false };
   };
@@ -155,10 +173,9 @@ _Kanha Library Management_ 📖`;
 
   // Click handler for seats
   const handleSeatClick = (seatNum) => {
-    const { hasMorning, hasEvening, morningStudent, eveningStudent } =
-      getMorningEveningOccupantsForSeat(seatNum);
+    const occupants = getOccupantsForSeat(seatNum);
 
-    if (!hasMorning && !hasEvening) {
+    if (!occupants.isFull && !occupants.hasMorning && !occupants.hasEvening) {
       // If vacant, auto-fill and navigate to Registration
       sessionStorage.setItem('prefilled_seat_number', seatNum);
       onAddToast(
@@ -182,17 +199,16 @@ _Kanha Library Management_ 📖`;
 
     // Determine which students to show based on sessionFilter
     let toShow = [];
-    if (sessionFilter === 'morning') {
-      if (morningStudent) toShow = [morningStudent];
+    if (occupants.isFull) {
+      toShow = [occupants.fullTimeStudent];
+    } else if (sessionFilter === 'morning') {
+      if (occupants.morningStudent) toShow = [occupants.morningStudent];
     } else if (sessionFilter === 'evening') {
-      if (eveningStudent) toShow = [eveningStudent];
+      if (occupants.eveningStudent) toShow = [occupants.eveningStudent];
     } else {
       // all
-      if (morningStudent) toShow.push(morningStudent);
-      if (eveningStudent) {
-        const already = toShow.some((s) => s.id === eveningStudent.id);
-        if (!already) toShow.push(eveningStudent);
-      }
+      if (occupants.morningStudent) toShow.push(occupants.morningStudent);
+      if (occupants.eveningStudent) toShow.push(occupants.eveningStudent);
     }
 
     setSelectedSeatStudents(toShow);
@@ -262,6 +278,10 @@ _Kanha Library Management_ 📖`;
                 <div className="legend-color color-occupied-expired" style={{ borderColor: 'rgba(255, 255, 255, 0.25)' }}></div>
                 <span>Evening (Black)</span>
               </div>
+              <div className="legend-item">
+                <div className="legend-color occupied-full" style={{ border: '2px solid rgba(255, 105, 180, 0.9)', background: 'rgba(255, 105, 180, 0.2)', width: '16px', height: '16px', borderRadius: '4px' }}></div>
+                <span>Full Time (Pink)</span>
+              </div>
             </div>
           </div>
         </div>
@@ -271,10 +291,17 @@ _Kanha Library Management_ 📖`;
           {/* top row (24-34) */}
           {topRow.map((seatNum) => {
             const renderState = getSeatRenderState(seatNum);
-            const { morningStudent, eveningStudent, hasMorning, hasEvening, isShared } =
-              getMorningEveningOccupantsForSeat(seatNum);
-            const primaryStudent = sessionFilter === 'evening' ? eveningStudent : morningStudent;
-            const studentToShow = sessionFilter === 'all' ? (isShared ? morningStudent : (hasMorning ? morningStudent : eveningStudent)) : primaryStudent;
+            const occupants = getOccupantsForSeat(seatNum);
+            let studentToShow = null;
+            if (occupants.isFull) {
+              studentToShow = occupants.fullTimeStudent;
+            } else if (sessionFilter === 'morning') {
+              studentToShow = occupants.morningStudent;
+            } else if (sessionFilter === 'evening') {
+              studentToShow = occupants.eveningStudent;
+            } else {
+              studentToShow = occupants.morningStudent || occupants.eveningStudent;
+            }
 
             return (
               <div
@@ -299,10 +326,17 @@ _Kanha Library Management_ 📖`;
           {/* middle row (13-23) */}
           {middleRow.map((seatNum) => {
             const renderState = getSeatRenderState(seatNum);
-            const { morningStudent, eveningStudent, hasMorning, hasEvening, isShared } =
-              getMorningEveningOccupantsForSeat(seatNum);
-            const primaryStudent = sessionFilter === 'evening' ? eveningStudent : morningStudent;
-            const studentToShow = sessionFilter === 'all' ? (isShared ? morningStudent : (hasMorning ? morningStudent : eveningStudent)) : primaryStudent;
+            const occupants = getOccupantsForSeat(seatNum);
+            let studentToShow = null;
+            if (occupants.isFull) {
+              studentToShow = occupants.fullTimeStudent;
+            } else if (sessionFilter === 'morning') {
+              studentToShow = occupants.morningStudent;
+            } else if (sessionFilter === 'evening') {
+              studentToShow = occupants.eveningStudent;
+            } else {
+              studentToShow = occupants.morningStudent || occupants.eveningStudent;
+            }
 
             return (
               <div
@@ -327,10 +361,17 @@ _Kanha Library Management_ 📖`;
           {/* bottom row (1-12) */}
           {bottomRow.map((seatNum) => {
             const renderState = getSeatRenderState(seatNum);
-            const { morningStudent, eveningStudent, hasMorning, hasEvening, isShared } =
-              getMorningEveningOccupantsForSeat(seatNum);
-            const primaryStudent = sessionFilter === 'evening' ? eveningStudent : morningStudent;
-            const studentToShow = sessionFilter === 'all' ? (isShared ? morningStudent : (hasMorning ? morningStudent : eveningStudent)) : primaryStudent;
+            const occupants = getOccupantsForSeat(seatNum);
+            let studentToShow = null;
+            if (occupants.isFull) {
+              studentToShow = occupants.fullTimeStudent;
+            } else if (sessionFilter === 'morning') {
+              studentToShow = occupants.morningStudent;
+            } else if (sessionFilter === 'evening') {
+              studentToShow = occupants.eveningStudent;
+            } else {
+              studentToShow = occupants.morningStudent || occupants.eveningStudent;
+            }
 
             return (
               <div
@@ -369,57 +410,64 @@ _Kanha Library Management_ 📖`;
             </div>
 
             <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-              {selectedSeatStudents.map((s) => (
-                <div key={s.id} style={{ minWidth: '230px', flex: '1 1 230px' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    {s.photo_path ? (
-                      <img
-                        src={s.photo_path}
-                        alt={s.name}
-                        style={{ width: '70px', height: '90px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                      />
-                    ) : (
-                      <div style={{ width: '70px', height: '90px', borderRadius: '6px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                        <User size={26} />
-                      </div>
-                    )}
+              {selectedSeatStudents.map((s) => {
+                const isFullTime = s.seat_type === 'full' || s.seat_time === 'full';
+                return (
+                  <div 
+                    key={s.id} 
+                    className={isFullTime ? 'full-time-details' : ''} 
+                    style={{ minWidth: '230px', flex: '1 1 230px', padding: isFullTime ? '1rem' : '0', borderRadius: isFullTime ? '8px' : '0' }}
+                  >
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      {s.photo_path ? (
+                        <img
+                          src={s.photo_path}
+                          alt={s.name}
+                          style={{ width: '70px', height: '90px', borderRadius: '6px', objectFit: 'cover', border: isFullTime ? '1px solid #ff69b4' : '1px solid var(--border-color)' }}
+                        />
+                      ) : (
+                        <div style={{ width: '70px', height: '90px', borderRadius: '6px', background: 'var(--bg-secondary)', border: isFullTime ? '1px dashed #ff69b4' : '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isFullTime ? '#ff69b4' : 'var(--text-muted)' }}>
+                          <User size={26} />
+                        </div>
+                      )}
 
-                    <div>
-                      <h4 style={{ color: '#fff', fontSize: '1.05rem', marginBottom: '0.25rem', fontFamily: 'var(--font-header)' }}>
-                        {s.name}
-                      </h4>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                        Phone: {s.phone}
-                      </p>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span className={`status-indicator ${s.status === 'Active' ? 'active' : 'expired'}`}>
-                          {s.status}
-                        </span>
-                        <span className="seat-tag" style={{ margin: 0 }}>
-                          {s.seat_type === 'both' ? 'Shared' : s.seat_time}
-                        </span>
+                      <div>
+                        <h4 className={isFullTime ? 'full-time-text' : ''} style={{ color: isFullTime ? '#ff69b4' : '#fff', fontSize: '1.05rem', marginBottom: '0.25rem', fontFamily: 'var(--font-header)' }}>
+                          {s.name}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                          Phone: {s.phone}
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span className={`status-indicator ${s.status === 'Active' ? 'active' : 'expired'}`}>
+                            {s.status}
+                          </span>
+                          <span className={`seat-tag ${isFullTime ? 'full-time-tag' : ''}`} style={{ margin: 0 }}>
+                            {isFullTime ? 'Full Time' : (s.seat_type === 'both' ? 'Shared' : s.seat_time)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', fontSize: '0.8rem' }}>
+                      <div style={{ color: 'var(--text-muted)' }}>Valid Until:</div>
+                      <div style={{ color: '#fff', fontWeight: '500' }}>
+                        {s.expiry_date
+                          ? new Date(s.expiry_date).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })
+                          : '—'}
+                      </div>
+                      <div style={{ color: 'var(--text-muted)' }}>Paid Fees:</div>
+                      <div style={{ color: isFullTime ? '#ff69b4' : 'var(--color-active)', fontWeight: 'bold' }}>
+                        ₹{s.amount_paid ?? 0} / ₹{s.total_fees ?? 0}
                       </div>
                     </div>
                   </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', fontSize: '0.8rem' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>Valid Until:</div>
-                    <div style={{ color: '#fff', fontWeight: '500' }}>
-                      {s.expiry_date
-                        ? new Date(s.expiry_date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : '—'}
-                    </div>
-                    <div style={{ color: 'var(--text-muted)' }}>Paid Fees:</div>
-                    <div style={{ color: 'var(--color-active)', fontWeight: 'bold' }}>
-                      ₹{s.amount_paid ?? 0} / ₹{s.total_fees ?? 0}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Monthly-wise payment records */}

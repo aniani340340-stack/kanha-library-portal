@@ -391,6 +391,8 @@ app.post(
         whatsapp,
         parent_phone,
         seat_number,
+        seat_type,
+        seat_time,
         duration,
         start_date,
         rate,
@@ -414,12 +416,25 @@ app.post(
           '/uploads/' + req.file.filename;
       }
 
+      const payments = [];
+      if (Number(amount_paid) > 0) {
+        payments.push({
+          month: start_date.substring(0, 7),
+          amount: Number(amount_paid),
+          paid_on: start_date,
+          remarks: remarks
+        });
+      }
+
       const student = new Student({
         name,
         phone,
         whatsapp,
         parent_phone,
         seat_number,
+        seat_type,
+        seat_time,
+        payments,
         photo_path,
         duration,
         start_date,
@@ -435,7 +450,7 @@ app.post(
 
       await student.save();
 
-      res.json({
+      res.status(201).json({
         message:
           'Student added successfully',
         student
@@ -493,6 +508,15 @@ app.put(
       student.amount_paid = amount_paid;
       student.remarks = remarks;
       student.status = 'Active';
+
+      if (Number(amount_paid) > 0) {
+        student.payments.push({
+          month: start_date.substring(0, 7),
+          amount: Number(amount_paid),
+          paid_on: start_date,
+          remarks: remarks
+        });
+      }
 
       await student.save();
 
@@ -578,6 +602,74 @@ app.delete(
   }
 );
 
+app.get('/api/auth/me', (req, res) => {
+  res.json({ email: req.admin.email });
+});
+
+app.put('/api/students/:id/restore', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    student.archived = false;
+    student.archived_at = undefined;
+    if (req.body.seat_number) {
+      student.seat_number = req.body.seat_number;
+    }
+    student.status = 'Active';
+    await student.save();
+    res.json({ message: 'Student restored successfully', student });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/notifications', async (req, res) => {
+  res.json({
+    whatsappConfigured: false,
+    adminWhatsApp: '',
+    telegramConfigured: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+    notifications: []
+  });
+});
+
+app.post('/api/notifications/check-expiry', async (req, res) => {
+  try {
+    await autoCheckExpiredStudents();
+    res.json({ message: 'Expiry check completed' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/payments', async (req, res) => {
+  try {
+    const students = await Student.find({});
+    const allPayments = [];
+    students.forEach((student) => {
+      (student.payments || []).forEach((payment) => {
+        allPayments.push({
+          id: `${student._id}-${payment._id || Math.random()}`,
+          studentId: student._id.toString(),
+          studentName: student.name,
+          seatNumber: student.seat_number,
+          phone: student.phone,
+          amount: payment.amount,
+          paid_on: payment.paid_on,
+          month: payment.month,
+          remarks: payment.remarks,
+          archived: student.archived
+        });
+      });
+    });
+    allPayments.sort((a, b) => new Date(b.paid_on) - new Date(a.paid_on));
+    res.json(allPayments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* =========================
    Archived Students
 ========================= */
@@ -610,6 +702,11 @@ app.get('/api/stats', async (req, res) => {
       archived: false
     });
 
+    const archivedCount = await Student.countDocuments({ archived: true });
+    const occupiedSeats = students
+      .filter((s) => s.status === 'Active')
+      .map((s) => s.seat_number.toString());
+
     const stats = {
       total: students.length,
 
@@ -625,7 +722,10 @@ app.get('/api/stats', async (req, res) => {
         (sum, s) =>
           sum + Number(s.amount_paid || 0),
         0
-      )
+      ),
+
+      archived: archivedCount,
+      occupiedSeats
     };
 
     res.json(stats);

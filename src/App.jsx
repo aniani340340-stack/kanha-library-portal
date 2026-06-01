@@ -9,7 +9,8 @@ import {
   BookOpen,
   WifiOff,
   Bell,
-  LogOut
+  LogOut,
+  DollarSign
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import RegistrationForm from './components/RegistrationForm';
@@ -17,6 +18,7 @@ import StudentList from './components/StudentList';
 import SeatLayout from './components/SeatLayout';
 import ArchivedStudents from './components/ArchivedStudents';
 import Login from './components/Login';
+import PaymentLedger from './components/PaymentLedger';
 import { apiFetch, getToken, setToken, clearToken } from './utils/auth';
 
 // Inline simple Settings component to reduce file count and keep it centralized
@@ -292,6 +294,12 @@ function App() {
             <Grid /> Seat Layout
           </div>
           <div 
+            className={`nav-link ${currentView === 'ledger' ? 'active' : ''}`}
+            onClick={() => setCurrentView('ledger')}
+          >
+            <DollarSign /> Payment Ledger
+          </div>
+          <div 
             className={`nav-link ${currentView === 'archive' ? 'active' : ''}`}
             onClick={() => setCurrentView('archive')}
           >
@@ -366,6 +374,11 @@ function App() {
               <ArchivedStudents
                 onAddToast={addToast}
                 onDataChange={fetchData}
+              />
+            )}
+            {currentView === 'ledger' && (
+              <PaymentLedger 
+                onAddToast={addToast} 
               />
             )}
             {currentView === 'settings' && (

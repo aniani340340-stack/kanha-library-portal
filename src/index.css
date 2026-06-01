@@ -606,6 +606,28 @@ body {
   color: #ffffff;
 }
 
+.seat-node.occupied-full {
+  background: rgba(255, 105, 180, 0.15);
+  border: 2px solid rgba(255, 105, 180, 0.9);
+  color: #ff69b4;
+  box-shadow: 0 0 8px rgba(255, 105, 180, 0.18);
+}
+
+.full-time-details {
+  border: 1px solid rgba(255, 105, 180, 0.3) !important;
+  background: rgba(255, 105, 180, 0.05) !important;
+}
+
+.full-time-text {
+  color: #ff69b4 !important;
+}
+
+.full-time-tag {
+  background: rgba(255, 105, 180, 0.15) !important;
+  color: #ff69b4 !important;
+  border: 1px solid rgba(255, 105, 180, 0.4) !important;
+}
+
 
 .seat-node {
   height: 65px;
