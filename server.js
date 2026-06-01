@@ -277,9 +277,10 @@ async function autoCheckExpiredStudents() {
           getAdminExpiryMessage(student)
         );
 
-        student.status = 'Expired';
-
-        await student.save();
+        await Student.updateOne(
+          { _id: student._id },
+          { $set: { status: 'Expired' } }
+        );
 
         console.log(
           '✅ Telegram alert sent for:',
@@ -392,7 +393,6 @@ app.post(
         parent_phone,
         seat_number,
         seat_type,
-        seat_time,
         duration,
         start_date,
         rate,
@@ -433,7 +433,6 @@ app.post(
         parent_phone,
         seat_number,
         seat_type,
-        seat_time,
         payments,
         photo_path,
         duration,
@@ -471,17 +470,6 @@ app.put(
   '/api/students/:id/renew',
   async (req, res) => {
     try {
-      const student =
-        await Student.findById(
-          req.params.id
-        );
-
-      if (!student) {
-        return res.status(404).json({
-          error: 'Student not found'
-        });
-      }
-
       const {
         duration,
         start_date,
@@ -493,32 +481,60 @@ app.put(
         remarks
       } = req.body;
 
-      student.duration = duration;
-      student.start_date = start_date;
-      student.expiry_date =
+      const expiry_date =
         calculateExpiryDate(
           start_date,
           duration
         );
 
-      student.rate = rate;
-      student.discount = discount;
-      student.total_fees = total_fees;
-      student.fee_status = fee_status;
-      student.amount_paid = amount_paid;
-      student.remarks = remarks;
-      student.status = 'Active';
+      const updateFields = {
+        duration,
+        start_date,
+        expiry_date,
+        rate,
+        discount,
+        total_fees,
+        fee_status,
+        amount_paid,
+        remarks,
+        status: 'Active'
+      };
 
-      if (Number(amount_paid) > 0) {
-        student.payments.push({
-          month: start_date.substring(0, 7),
-          amount: Number(amount_paid),
-          paid_on: start_date,
-          remarks: remarks
+      const pushOp =
+        Number(amount_paid) > 0
+          ? {
+              $push: {
+                payments: {
+                  month:
+                    start_date.substring(
+                      0,
+                      7
+                    ),
+                  amount: Number(
+                    amount_paid
+                  ),
+                  paid_on: start_date,
+                  remarks: remarks
+                }
+              }
+            }
+          : {};
+
+      const student =
+        await Student.findByIdAndUpdate(
+          req.params.id,
+          {
+            $set: updateFields,
+            ...pushOp
+          },
+          { new: true }
+        );
+
+      if (!student) {
+        return res.status(404).json({
+          error: 'Student not found'
         });
       }
-
-      await student.save();
 
       res.json({
         message:
@@ -541,8 +557,14 @@ app.delete(
   async (req, res) => {
     try {
       const student =
-        await Student.findById(
-          req.params.id
+        await Student.findByIdAndUpdate(
+          req.params.id,
+          {
+            archived: true,
+            archived_at:
+              new Date().toISOString()
+          },
+          { new: true }
         );
 
       if (!student) {
@@ -550,12 +572,6 @@ app.delete(
           error: 'Student not found'
         });
       }
-
-      student.archived = true;
-
-      student.archived_at = new Date();
-
-      await student.save();
 
       res.json({
         message:
@@ -608,17 +624,22 @@ app.get('/api/auth/me', (req, res) => {
 
 app.put('/api/students/:id/restore', async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const updateFields = {
+      archived: false,
+      archived_at: null,
+      status: 'Active'
+    };
+    if (req.body.seat_number) {
+      updateFields.seat_number = req.body.seat_number;
+    }
+    const student = await Student.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateFields },
+      { new: true }
+    );
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    student.archived = false;
-    student.archived_at = undefined;
-    if (req.body.seat_number) {
-      student.seat_number = req.body.seat_number;
-    }
-    student.status = 'Active';
-    await student.save();
     res.json({ message: 'Student restored successfully', student });
   } catch (err) {
     res.status(500).json({ error: err.message });

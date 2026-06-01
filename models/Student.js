@@ -32,12 +32,7 @@ const studentSchema = new mongoose.Schema(
       required: true
     },
 
-    // For shared seats, allow two students per seat (morning/evening)
-    seat_time: {
-      type: String,
-      enum: ['morning', 'evening'],
-      required: true
-    },
+    // seat_time field removed; seat_type now covers shift info
 
     // Payment records per month
     payments: [
