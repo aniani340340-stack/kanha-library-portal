@@ -463,6 +463,64 @@ app.post(
 );
 
 /* =========================
+   Edit Student
+========================= */
+
+app.put('/api/students/:id', async (req, res) => {
+  try {
+    const {
+      name,
+      phone,
+      whatsapp,
+      parent_phone,
+      seat_number,
+      seat_type
+    } = req.body;
+
+    const updateFields = {
+      name,
+      phone,
+      whatsapp,
+      parent_phone,
+      seat_number
+    };
+
+    if (seat_type) {
+      updateFields.seat_type = seat_type;
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        archived: false
+      },
+      {
+        $set: updateFields
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Student not found'
+      });
+    }
+
+    res.json({
+      message: 'Student updated successfully',
+      student
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
+
+/* =========================
    Renew Student
 ========================= */
 

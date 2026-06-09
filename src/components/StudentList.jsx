@@ -11,7 +11,8 @@ import {
   Calendar,
   DollarSign,
   AlertTriangle,
-  Smile
+  Smile,
+  Edit2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -32,6 +33,12 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const [selectedStudent, setSelectedStudent] = useState(null); // for Details modal
   const [renewingStudent, setRenewingStudent] = useState(null); // for Renew modal
   const [deletingStudent, setDeletingStudent] = useState(null); // for Delete modal
+  const [editStudent, setEditStudent] = useState(null); // for Edit modal
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsApp, setEditWhatsApp] = useState('');
+  const [editSeatNumber, setEditSeatNumber] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
   
   // Renewal modal form states
   const [duration, setDuration] = useState('1');
@@ -97,6 +104,45 @@ function StudentList({ students, onAddToast, onDataChange }) {
     setAmountPaid(student.rate || '1000');
     setFeeStatus('Paid');
     setRemarks('');
+  };
+
+  const openEditModal = (student) => {
+    setEditStudent(student);
+    setEditName(student.name);
+    setEditPhone(student.phone);
+    setEditWhatsApp(student.whatsapp);
+    setEditSeatNumber(student.seat_number);
+    setEditParentPhone(student.parent_phone || '');
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const editPayload = {
+      ...editStudent,
+      name: editName,
+      phone: editPhone,
+      whatsapp: editWhatsApp,
+      seat_number: editSeatNumber,
+      parent_phone: editParentPhone
+    };
+    try {
+      const response = await apiFetch(`/api/students/${editStudent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editPayload)
+      });
+      if (!response.ok) throw new Error('Edit failed');
+      onAddToast(`Student ${editName} updated successfully!`, 'success');
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      setEditStudent(null);
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      onAddToast('Failed to update student.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRenewSubmit = async (e) => {
@@ -378,6 +424,15 @@ _Kanha Library Management_ 📖`;
                             title="Renew Membership"
                           >
                             <RefreshCw size={15} />
+                          </button>
+
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '0.35rem', borderRadius: '6px' }}
+                            onClick={() => openEditModal(student)}
+                            title="Edit Student Details"
+                          >
+                            <Edit2 size={15} />
                           </button>
 
                           <button 
@@ -665,6 +720,52 @@ _Kanha Library Management_ 📖`;
                 Move to Archive
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Edit Student Modal */}
+      {editStudent && (
+        <div className="modal-overlay">
+          <div className="glass modal-content" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontFamily: 'var(--font-header)', color: '#fff' }}>Edit Student Details</h3>
+              <button className="modal-close" onClick={() => setEditStudent(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label>Name</label>
+                  <input type="text" className="form-control" value={editName} onChange={e => setEditName(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Phone</label>
+                  <input type="text" className="form-control" value={editPhone} onChange={e => setEditPhone(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>WhatsApp</label>
+                  <input type="text" className="form-control" value={editWhatsApp} onChange={e => setEditWhatsApp(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Seat Number</label>
+                  <input type="number" className="form-control" value={editSeatNumber} onChange={e => setEditSeatNumber(e.target.value)} required />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Parent / Emergency Contact</label>
+                  <input type="text" className="form-control" value={editParentPhone} onChange={e => setEditParentPhone(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '2rem', paddingTop: '1rem', textAlign: 'right' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditStudent(null)} style={{ marginRight: '0.75rem' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
