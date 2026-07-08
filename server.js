@@ -479,6 +479,17 @@ app.put('/api/students/:id', async (req, res) => {
       duration
     } = req.body;
 
+    const existingStudent = await Student.findOne({
+      _id: req.params.id,
+      archived: false
+    });
+
+    if (!existingStudent) {
+      return res.status(404).json({
+        error: 'Student not found'
+      });
+    }
+
     const updateFields = {
       name,
       phone,
@@ -491,12 +502,46 @@ app.put('/api/students/:id', async (req, res) => {
       updateFields.seat_type = seat_type;
     }
 
+    if (duration) {
+      updateFields.duration = duration;
+    }
+
     if (start_date) {
+      const effectiveDuration = duration || existingStudent.duration;
       updateFields.start_date = start_date;
-      if (duration) {
+
+      if (effectiveDuration) {
         updateFields.expiry_date = calculateExpiryDate(
           start_date,
-          duration
+          effectiveDuration
+        );
+      }
+
+      if (
+        start_date !== existingStudent.start_date &&
+        existingStudent.payments &&
+        existingStudent.payments.length > 0
+      ) {
+        const oldMonth = existingStudent.start_date
+          ? existingStudent.start_date.substring(0, 7)
+          : '';
+        let paymentIndex = existingStudent.payments.length - 1;
+
+        for (let i = existingStudent.payments.length - 1; i >= 0; i--) {
+          const payment = existingStudent.payments[i];
+          if (
+            payment.paid_on === existingStudent.start_date ||
+            (oldMonth && payment.month === oldMonth)
+          ) {
+            paymentIndex = i;
+            break;
+          }
+        }
+
+        updateFields[`payments.${paymentIndex}.paid_on`] = start_date;
+        updateFields[`payments.${paymentIndex}.month`] = start_date.substring(
+          0,
+          7
         );
       }
     }
@@ -514,12 +559,6 @@ app.put('/api/students/:id', async (req, res) => {
         runValidators: true
       }
     );
-
-    if (!student) {
-      return res.status(404).json({
-        error: 'Student not found'
-      });
-    }
 
     res.json({
       message: 'Student updated successfully',
@@ -846,4 +885,5 @@ app.listen(PORT, () => {
     '🚀 Server running on port ' + PORT
   );
 });
+
 
