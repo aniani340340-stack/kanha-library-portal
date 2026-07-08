@@ -106,9 +106,9 @@ _Kanha Library Management_ 📖`;
       nextStart.setDate(nextStart.getDate() + 1);
       setStartDate(nextStart.toISOString().split('T')[0]);
     }
-    setRate(student.rate || '1000'); // default rate or previous
+    setRate(student.rate || '800'); // default rate or previous
     setDiscount('0');
-    setAmountPaid(student.rate || '1000');
+    setAmountPaid(student.rate || '800');
     setFeeStatus('Paid');
     setRemarks('');
   };
@@ -430,3 +430,4 @@ _Kanha Library Management_ 📖`;
 }
 
 export default Dashboard;
+

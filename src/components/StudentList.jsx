@@ -39,6 +39,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const [editWhatsApp, setEditWhatsApp] = useState('');
   const [editSeatNumber, setEditSeatNumber] = useState('');
   const [editParentPhone, setEditParentPhone] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
   
   // Renewal modal form states
   const [duration, setDuration] = useState('1');
@@ -99,9 +100,9 @@ function StudentList({ students, onAddToast, onDataChange }) {
       nextStart.setDate(nextStart.getDate() + 1);
       setStartDate(nextStart.toISOString().split('T')[0]);
     }
-    setRate(student.rate || '1000');
+    setRate(student.rate || '800');
     setDiscount('0');
-    setAmountPaid(student.rate || '1000');
+    setAmountPaid(student.rate || '800');
     setFeeStatus('Paid');
     setRemarks('');
   };
@@ -113,6 +114,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
     setEditWhatsApp(student.whatsapp);
     setEditSeatNumber(student.seat_number);
     setEditParentPhone(student.parent_phone || '');
+    setEditStartDate(student.start_date || new Date().toISOString().split('T')[0]);
   };
 
   const handleEditSubmit = async (e) => {
@@ -124,7 +126,8 @@ function StudentList({ students, onAddToast, onDataChange }) {
       phone: editPhone,
       whatsapp: editWhatsApp,
       seat_number: editSeatNumber,
-      parent_phone: editParentPhone
+      parent_phone: editParentPhone,
+      start_date: editStartDate
     };
     try {
       const response = await apiFetch(`/api/students/${editStudent.id}`, {
@@ -752,6 +755,10 @@ _Kanha Library Management_ 📖`;
                   <label>Seat Number</label>
                   <input type="number" className="form-control" value={editSeatNumber} onChange={e => setEditSeatNumber(e.target.value)} required />
                 </div>
+                <div className="form-group">
+                  <label>Start Date</label>
+                  <input type="date" className="form-control" value={editStartDate} onChange={e => setEditStartDate(e.target.value)} required />
+                </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Parent / Emergency Contact</label>
                   <input type="text" className="form-control" value={editParentPhone} onChange={e => setEditParentPhone(e.target.value)} />
@@ -774,3 +781,5 @@ _Kanha Library Management_ 📖`;
 }
 
 export default StudentList;
+
+

@@ -13,10 +13,10 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
   const [seatType, setSeatType] = useState('morning');
   // seatTime removed – seat_type covers shift info
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [rate, setRate] = useState('1000'); // default monthly rate
+  const [rate, setRate] = useState('800'); // default monthly rate
   const [discount, setDiscount] = useState('0');
   const [feeStatus, setFeeStatus] = useState('Paid');
-  const [amountPaid, setAmountPaid] = useState('1000');
+  const [amountPaid, setAmountPaid] = useState('800');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -532,3 +532,4 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
 }
 
 export default RegistrationForm;
+

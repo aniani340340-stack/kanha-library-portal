@@ -474,7 +474,9 @@ app.put('/api/students/:id', async (req, res) => {
       whatsapp,
       parent_phone,
       seat_number,
-      seat_type
+      seat_type,
+      start_date,
+      duration
     } = req.body;
 
     const updateFields = {
@@ -487,6 +489,16 @@ app.put('/api/students/:id', async (req, res) => {
 
     if (seat_type) {
       updateFields.seat_type = seat_type;
+    }
+
+    if (start_date) {
+      updateFields.start_date = start_date;
+      if (duration) {
+        updateFields.expiry_date = calculateExpiryDate(
+          start_date,
+          duration
+        );
+      }
     }
 
     const student = await Student.findOneAndUpdate(
@@ -834,3 +846,4 @@ app.listen(PORT, () => {
     '🚀 Server running on port ' + PORT
   );
 });
+
