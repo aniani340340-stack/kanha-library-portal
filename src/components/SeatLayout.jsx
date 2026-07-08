@@ -33,7 +33,7 @@ function SeatLayout({ stats, students, onAddToast, onDataChange }) {
     const expiry = new Date(student.expiry_date);
     const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
-    if (student.status === 'Expired' || daysLeft < 0) return 'occupied-expired';
+    if (daysLeft < 0) return 'occupied-expired';
     if (daysLeft >= 0 && daysLeft <= 3) return 'occupied-warning';
     return '';
   };
@@ -412,6 +412,8 @@ _Kanha Library Management_ 📖`;
             <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
               {selectedSeatStudents.map((s) => {
                 const isFullTime = s.seat_type === 'full' || s.seat_time === 'full';
+                const todayDate = new Date().toISOString().split('T')[0];
+                const isExpired = s.expiry_date < todayDate;
                 return (
                   <div 
                     key={s.id} 
@@ -439,8 +441,8 @@ _Kanha Library Management_ 📖`;
                           Phone: {s.phone}
                         </p>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span className={`status-indicator ${s.status === 'Active' ? 'active' : 'expired'}`}>
-                            {s.status}
+                          <span className={`status-indicator ${isExpired ? 'expired' : 'active'}`}>
+                            {isExpired ? 'Expired' : 'Active'}
                           </span>
                           <span className={`seat-tag ${isFullTime ? 'full-time-tag' : ''}`} style={{ margin: 0 }}>
                             {isFullTime ? 'Full Time' : (s.seat_type === 'both' ? 'Shared' : s.seat_time)}
@@ -558,3 +560,7 @@ _Kanha Library Management_ 📖`;
 }
 
 export default SeatLayout;
+
+
+
+

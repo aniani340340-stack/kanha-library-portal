@@ -47,8 +47,8 @@ function Dashboard({ stats, onNavigate, onAddToast, onDataChange }) {
 
   const urgentAlerts = allStudents.filter(student => {
     const expiry = new Date(student.expiry_date);
-    const isExpired = student.status === 'Expired' || expiry < today;
-    const isExpiringSoon = student.status === 'Active' && expiry >= today && expiry <= warningThreshold;
+    const isExpired = expiry < today;
+    const isExpiringSoon = expiry >= today && expiry <= warningThreshold;
     return isExpired || isExpiringSoon;
   });
 
@@ -430,4 +430,5 @@ _Kanha Library Management_ 📖`;
 }
 
 export default Dashboard;
+
 

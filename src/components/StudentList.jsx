@@ -77,11 +77,11 @@ function StudentList({ students, onAddToast, onDataChange }) {
     if (!matchesSearch) return false;
 
     const expiry = new Date(student.expiry_date);
-    const isExpired = student.status === 'Expired' || expiry < today;
-    const isExpiringSoon = student.status === 'Active' && expiry >= today && expiry <= warningThreshold;
+    const isExpired = expiry < today;
+    const isExpiringSoon = expiry >= today && expiry <= warningThreshold;
 
     if (statusFilter === 'All') return true;
-    if (statusFilter === 'Active') return student.status === 'Active' && !isExpiringSoon;
+    if (statusFilter === 'Active') return !isExpired && !isExpiringSoon;
     if (statusFilter === 'Expired') return isExpired;
     if (statusFilter === 'Expiring Soon') return isExpiringSoon;
     if (statusFilter === 'Pending Fees') return (student.total_fees - student.amount_paid) > 0;
@@ -331,7 +331,7 @@ _Kanha Library Management_ 📖`;
                     (new Date(student.expiry_date) - new Date()) / (1000 * 60 * 60 * 24)
                   );
                   const isExpired = daysLeft < 0;
-                  const isExpiringSoon = student.status === 'Active' && daysLeft >= 0 && daysLeft <= 3;
+                  const isExpiringSoon = daysLeft >= 0 && daysLeft <= 3;
                   
                   const pendingFee = student.total_fees - student.amount_paid;
 
@@ -517,8 +517,8 @@ _Kanha Library Management_ 📖`;
                   <div className="detail-field">
                     <h5>Status</h5>
                     <p>
-                      <span className={`status-indicator ${selectedStudent.status === 'Active' ? 'active' : 'expired'}`}>
-                        {selectedStudent.status}
+                      <span className={`status-indicator ${selectedStudent.expiry_date < new Date().toISOString().split('T')[0] ? 'expired' : 'active'}`}>
+                        {selectedStudent.expiry_date < new Date().toISOString().split('T')[0] ? 'Expired' : 'Active'}
                       </span>
                     </p>
                   </div>
@@ -781,5 +781,9 @@ _Kanha Library Management_ 📖`;
 }
 
 export default StudentList;
+
+
+
+
 
 

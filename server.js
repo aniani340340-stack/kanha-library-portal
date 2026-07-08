@@ -844,20 +844,19 @@ app.get('/api/stats', async (req, res) => {
     });
 
     const archivedCount = await Student.countDocuments({ archived: true });
-    const today = new Date().toISOString().split('T')[0];
-    const isActiveStudent = (student) =>
-      student.expiry_date && student.expiry_date >= today;
     const occupiedSeats = students
-      .filter(isActiveStudent)
+      .filter((s) => s.status === 'Active')
       .map((s) => s.seat_number.toString());
 
     const stats = {
       total: students.length,
 
-      active: students.filter(isActiveStudent).length,
+      active: students.filter(
+        (s) => s.status === 'Active'
+      ).length,
 
       expired: students.filter(
-        (s) => !isActiveStudent(s)
+        (s) => s.status === 'Expired'
       ).length,
 
       revenue: students.reduce(
@@ -897,7 +896,6 @@ app.listen(PORT, () => {
     '🚀 Server running on port ' + PORT
   );
 });
-
 
 
 
