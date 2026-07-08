@@ -511,38 +511,49 @@ app.put('/api/students/:id', async (req, res) => {
       updateFields.start_date = start_date;
 
       if (effectiveDuration) {
-        updateFields.expiry_date = calculateExpiryDate(
+        const expiryDate = calculateExpiryDate(
           start_date,
           effectiveDuration
         );
+        const today = new Date().toISOString().split('T')[0];
+
+        updateFields.expiry_date = expiryDate;
+        updateFields.status = expiryDate < today ? 'Expired' : 'Active';
       }
 
-      if (
-        start_date !== existingStudent.start_date &&
-        existingStudent.payments &&
-        existingStudent.payments.length > 0
-      ) {
+      if (existingStudent.payments && existingStudent.payments.length > 0) {
+        const newMonth = start_date.substring(0, 7);
         const oldMonth = existingStudent.start_date
           ? existingStudent.start_date.substring(0, 7)
           : '';
-        let paymentIndex = existingStudent.payments.length - 1;
+        let paymentIndex = -1;
 
         for (let i = existingStudent.payments.length - 1; i >= 0; i--) {
-          const payment = existingStudent.payments[i];
-          if (
-            payment.paid_on === existingStudent.start_date ||
-            (oldMonth && payment.month === oldMonth)
-          ) {
+          if (existingStudent.payments[i].month === newMonth) {
             paymentIndex = i;
             break;
           }
         }
 
+        if (paymentIndex === -1) {
+          for (let i = existingStudent.payments.length - 1; i >= 0; i--) {
+            const payment = existingStudent.payments[i];
+            if (
+              payment.paid_on === existingStudent.start_date ||
+              (oldMonth && payment.month === oldMonth)
+            ) {
+              paymentIndex = i;
+              break;
+            }
+          }
+        }
+
+        if (paymentIndex === -1) {
+          paymentIndex = existingStudent.payments.length - 1;
+        }
+
         updateFields[`payments.${paymentIndex}.paid_on`] = start_date;
-        updateFields[`payments.${paymentIndex}.month`] = start_date.substring(
-          0,
-          7
-        );
+        updateFields[`payments.${paymentIndex}.month`] = newMonth;
       }
     }
 
@@ -833,19 +844,20 @@ app.get('/api/stats', async (req, res) => {
     });
 
     const archivedCount = await Student.countDocuments({ archived: true });
+    const today = new Date().toISOString().split('T')[0];
+    const isActiveStudent = (student) =>
+      student.expiry_date && student.expiry_date >= today;
     const occupiedSeats = students
-      .filter((s) => s.status === 'Active')
+      .filter(isActiveStudent)
       .map((s) => s.seat_number.toString());
 
     const stats = {
       total: students.length,
 
-      active: students.filter(
-        (s) => s.status === 'Active'
-      ).length,
+      active: students.filter(isActiveStudent).length,
 
       expired: students.filter(
-        (s) => s.status === 'Expired'
+        (s) => !isActiveStudent(s)
       ).length,
 
       revenue: students.reduce(
@@ -885,5 +897,7 @@ app.listen(PORT, () => {
     '🚀 Server running on port ' + PORT
   );
 });
+
+
 
 
