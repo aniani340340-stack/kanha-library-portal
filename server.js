@@ -476,7 +476,12 @@ app.put('/api/students/:id', async (req, res) => {
       seat_number,
       seat_type,
       start_date,
-      duration
+      duration,
+      rate,
+      discount,
+      amount_paid,
+      fee_status,
+      remarks
     } = req.body;
 
     const existingStudent = await Student.findOne({
@@ -506,56 +511,97 @@ app.put('/api/students/:id', async (req, res) => {
       updateFields.duration = duration;
     }
 
+    const effectiveStartDate = start_date || existingStudent.start_date || new Date().toISOString().split('T')[0];
+    const newMonth = effectiveStartDate.substring(0, 7);
+    const oldMonth = existingStudent.start_date ? existingStudent.start_date.substring(0, 7) : '';
+
     if (start_date) {
       const effectiveDuration = duration || existingStudent.duration;
       updateFields.start_date = start_date;
 
       if (effectiveDuration) {
-        const expiryDate = calculateExpiryDate(
-          start_date,
-          effectiveDuration
-        );
+        const expiryDate = calculateExpiryDate(start_date, effectiveDuration);
         const today = new Date().toISOString().split('T')[0];
-
         updateFields.expiry_date = expiryDate;
         updateFields.status = expiryDate < today ? 'Expired' : 'Active';
       }
+    }
 
-      if (existingStudent.payments && existingStudent.payments.length > 0) {
-        const newMonth = start_date.substring(0, 7);
-        const oldMonth = existingStudent.start_date
-          ? existingStudent.start_date.substring(0, 7)
-          : '';
-        let paymentIndex = -1;
+    if (rate !== undefined) {
+      updateFields.rate = Number(rate);
+    }
+    if (discount !== undefined) {
+      updateFields.discount = Number(discount);
+    }
+    if (fee_status !== undefined) {
+      updateFields.fee_status = fee_status;
+    }
+    if (remarks !== undefined) {
+      updateFields.remarks = remarks;
+    }
 
-        for (let i = existingStudent.payments.length - 1; i >= 0; i--) {
-          if (existingStudent.payments[i].month === newMonth) {
-            paymentIndex = i;
-            break;
-          }
-        }
+    const effectiveRate = rate !== undefined ? Number(rate) : existingStudent.rate;
+    const effectiveDuration = duration || existingStudent.duration;
+    const effectiveDiscount = discount !== undefined ? Number(discount) : existingStudent.discount;
+    updateFields.total_fees = (effectiveRate * effectiveDuration) - effectiveDiscount;
 
-        if (paymentIndex === -1) {
-          for (let i = existingStudent.payments.length - 1; i >= 0; i--) {
-            const payment = existingStudent.payments[i];
-            if (
-              payment.paid_on === existingStudent.start_date ||
-              (oldMonth && payment.month === oldMonth)
-            ) {
-              paymentIndex = i;
-              break;
-            }
-          }
-        }
+    let updatedPayments = existingStudent.payments ? JSON.parse(JSON.stringify(existingStudent.payments)) : [];
 
-        if (paymentIndex === -1) {
-          paymentIndex = existingStudent.payments.length - 1;
-        }
-
-        updateFields[`payments.${paymentIndex}.paid_on`] = start_date;
-        updateFields[`payments.${paymentIndex}.month`] = newMonth;
+    // Find the payment record for the current month/billing cycle
+    let paymentIndex = -1;
+    for (let i = updatedPayments.length - 1; i >= 0; i--) {
+      if (updatedPayments[i].month === newMonth) {
+        paymentIndex = i;
+        break;
       }
     }
+
+    if (paymentIndex === -1 && start_date) {
+      // Find by old start date or old month
+      for (let i = updatedPayments.length - 1; i >= 0; i--) {
+        const payment = updatedPayments[i];
+        if (
+          payment.paid_on === existingStudent.start_date ||
+          (oldMonth && payment.month === oldMonth)
+        ) {
+          paymentIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Default to the last payment record if still not found and there are records
+    if (paymentIndex === -1 && updatedPayments.length > 0) {
+      paymentIndex = updatedPayments.length - 1;
+    }
+
+    if (paymentIndex !== -1) {
+      // Update existing record
+      if (start_date) {
+        updatedPayments[paymentIndex].paid_on = start_date;
+        updatedPayments[paymentIndex].month = newMonth;
+      }
+      if (amount_paid !== undefined) {
+        updatedPayments[paymentIndex].amount = Number(amount_paid);
+      }
+      if (remarks !== undefined) {
+        updatedPayments[paymentIndex].remarks = remarks;
+      }
+    } else if (amount_paid !== undefined || Number(existingStudent.amount_paid || 0) > 0) {
+      // Create new record
+      updatedPayments.push({
+        month: newMonth,
+        amount: amount_paid !== undefined ? Number(amount_paid) : Number(existingStudent.amount_paid || 0),
+        paid_on: effectiveStartDate,
+        remarks: remarks || existingStudent.remarks || ''
+      });
+    }
+
+    if (amount_paid !== undefined) {
+      updateFields.amount_paid = Number(amount_paid);
+    }
+    
+    updateFields.payments = updatedPayments;
 
     const student = await Student.findOneAndUpdate(
       {

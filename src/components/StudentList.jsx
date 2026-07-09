@@ -40,6 +40,12 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const [editSeatNumber, setEditSeatNumber] = useState('');
   const [editParentPhone, setEditParentPhone] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [editDiscount, setEditDiscount] = useState('0');
+  const [editAmountPaid, setEditAmountPaid] = useState('');
+  const [editAmountPaidTouched, setEditAmountPaidTouched] = useState(false);
+  const [editFeeStatus, setEditFeeStatus] = useState('Paid');
+  const [editRemarks, setEditRemarks] = useState('');
   
   // Renewal modal form states
   const [duration, setDuration] = useState('1');
@@ -68,6 +74,24 @@ function StudentList({ students, onAddToast, onDataChange }) {
       setAmountPaid('0');
     }
   }, [feeStatus, rate, duration, discount, amountPaidTouched]);
+
+  // Sync edit amountPaid dynamically
+  const editCalculatedTotal = (Number(editRate) * Number(editStudent?.duration || 1)) - Number(editDiscount);
+  React.useEffect(() => {
+    if (editStudent) {
+      if (editFeeStatus === 'Paid') {
+        if (!editAmountPaidTouched) {
+          setEditAmountPaid(editCalculatedTotal.toString());
+        }
+      } else if (editFeeStatus === 'Unpaid') {
+        if (!editAmountPaidTouched) {
+          setEditAmountPaid('0');
+        }
+      } else if (editFeeStatus === 'Partial' && !editAmountPaidTouched) {
+        setEditAmountPaid('0');
+      }
+    }
+  }, [editFeeStatus, editRate, editDiscount, editStudent?.duration, editAmountPaidTouched, editStudent, editCalculatedTotal]);
 
   // Expiry dates helper
   const today = new Date();
@@ -125,6 +149,12 @@ function StudentList({ students, onAddToast, onDataChange }) {
     setEditSeatNumber(student.seat_number);
     setEditParentPhone(student.parent_phone || '');
     setEditStartDate(student.start_date || new Date().toISOString().split('T')[0]);
+    setEditRate(student.rate || '800');
+    setEditDiscount(student.discount || '0');
+    setEditAmountPaid(student.amount_paid || '800');
+    setEditAmountPaidTouched(false);
+    setEditFeeStatus(student.fee_status || 'Paid');
+    setEditRemarks(student.remarks || '');
   };
 
   const handleEditSubmit = async (e) => {
@@ -137,7 +167,12 @@ function StudentList({ students, onAddToast, onDataChange }) {
       whatsapp: editWhatsApp,
       seat_number: editSeatNumber,
       parent_phone: editParentPhone,
-      start_date: editStartDate
+      start_date: editStartDate,
+      rate: Number(editRate),
+      discount: Number(editDiscount),
+      amount_paid: Number(editAmountPaid),
+      fee_status: editFeeStatus,
+      remarks: editRemarks
     };
     try {
       const response = await apiFetch(`/api/students/${editStudent.id}`, {
@@ -796,6 +831,50 @@ _Kanha Library Management_ 📖`;
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Parent / Emergency Contact</label>
                   <input type="text" className="form-control" value={editParentPhone} onChange={e => setEditParentPhone(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Monthly Rate (₹)</label>
+                  <input type="number" className="form-control" value={editRate} onChange={e => setEditRate(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Discount (₹)</label>
+                  <input type="number" className="form-control" value={editDiscount} onChange={e => setEditDiscount(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Fee Status</label>
+                  <select 
+                    className="form-control" 
+                    value={editFeeStatus} 
+                    onChange={(e) => {
+                      setEditFeeStatus(e.target.value);
+                      setEditAmountPaidTouched(false);
+                    }}
+                  >
+                    <option value="Paid">Fully Paid</option>
+                    <option value="Partial">Partially Paid</option>
+                    <option value="Unpaid">Unpaid</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>This Month Amount Paid (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={editAmountPaid} 
+                    onChange={(e) => {
+                      setEditAmountPaid(e.target.value);
+                      setEditAmountPaidTouched(true);
+                    }}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Remarks / Payment Reference</label>
+                  <input type="text" className="form-control" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} placeholder="e.g. UPI transaction ID, paid later" />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Calculated Total Fees:</span>
+                  <span style={{ fontWeight: 'bold', color: '#fff', fontSize: '1.1rem' }}>₹{editCalculatedTotal}</span>
                 </div>
               </div>
               <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '2rem', paddingTop: '1rem', textAlign: 'right' }}>
