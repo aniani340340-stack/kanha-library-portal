@@ -47,6 +47,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const [rate, setRate] = useState('');
   const [discount, setDiscount] = useState('0');
   const [amountPaid, setAmountPaid] = useState('');
+  const [amountPaidTouched, setAmountPaidTouched] = useState(false);
   const [feeStatus, setFeeStatus] = useState('Paid');
   const [seatType, setSeatType] = useState('morning');
   const [remarks, setRemarks] = useState('');
@@ -56,11 +57,17 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const calculatedTotal = (Number(rate) * Number(duration)) - Number(discount);
   React.useEffect(() => {
     if (feeStatus === 'Paid') {
-      setAmountPaid(calculatedTotal.toString());
+      if (!amountPaidTouched) {
+        setAmountPaid(calculatedTotal.toString());
+      }
     } else if (feeStatus === 'Unpaid') {
+      if (!amountPaidTouched) {
+        setAmountPaid('0');
+      }
+    } else if (feeStatus === 'Partial' && !amountPaidTouched) {
       setAmountPaid('0');
     }
-  }, [feeStatus, rate, duration, discount]);
+  }, [feeStatus, rate, duration, discount, calculatedTotal, amountPaidTouched]);
 
   // Expiry dates helper
   const today = new Date();
@@ -104,6 +111,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
     setRate(student.rate || '800');
     setDiscount('0');
     setAmountPaid(student.rate || '800');
+    setAmountPaidTouched(false);
     setFeeStatus('Paid');
     setSeatType(student.seat_type || student.seat_time || 'morning');
     setRemarks('');
@@ -162,7 +170,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
       discount: Number(discount),
       total_fees: calculatedTotal,
       fee_status: feeStatus,
-      amount_paid: feeStatus === 'Paid' ? calculatedTotal : (feeStatus === 'Unpaid' ? 0 : Number(amountPaid)),
+      amount_paid: Number(amountPaid),
       remarks: remarks
     };
 
@@ -666,7 +674,10 @@ _Kanha Library Management_ 📖`;
                   <select 
                     className="form-control" 
                     value={feeStatus} 
-                    onChange={(e) => setFeeStatus(e.target.value)}
+                    onChange={(e) => {
+                      setFeeStatus(e.target.value);
+                      setAmountPaidTouched(false);
+                    }}
                   >
                     <option value="Paid">Fully Paid</option>
                     <option value="Partial">Partially Paid</option>
@@ -674,18 +685,22 @@ _Kanha Library Management_ 📖`;
                   </select>
                 </div>
 
-                {feeStatus === 'Partial' && (
-                  <div className="form-group">
-                    <label>Amount Paid Now (₹)</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      value={amountPaid} 
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
+                <div className="form-group">
+                  <label>Amount Paid Now (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={amountPaid} 
+                    onChange={(e) => {
+                      setAmountPaid(e.target.value);
+                      setAmountPaidTouched(true);
+                    }}
+                    required
+                  />
+                  <small style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    This month&apos;s payment amount can be edited manually.
+                  </small>
+                </div>
               </div>
 
               <div className="form-group" style={{ marginTop: '0.5rem' }}>

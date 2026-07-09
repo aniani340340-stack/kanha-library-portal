@@ -17,6 +17,7 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
   const [discount, setDiscount] = useState('0');
   const [feeStatus, setFeeStatus] = useState('Paid');
   const [amountPaid, setAmountPaid] = useState('800');
+  const [amountPaidTouched, setAmountPaidTouched] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,11 +48,17 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
   // Synchronize amountPaid based on feeStatus and rate
   useEffect(() => {
     if (feeStatus === 'Paid') {
-      setAmountPaid(calculatedTotal.toString());
+      if (!amountPaidTouched) {
+        setAmountPaid(calculatedTotal.toString());
+      }
     } else if (feeStatus === 'Unpaid') {
+      if (!amountPaidTouched) {
+        setAmountPaid('0');
+      }
+    } else if (feeStatus === 'Partial' && !amountPaidTouched) {
       setAmountPaid('0');
     }
-  }, [feeStatus, rate, duration, discount]);
+  }, [feeStatus, rate, duration, discount, calculatedTotal, amountPaidTouched]);
 
   // Webcam Controls
   const startCamera = async () => {
@@ -375,7 +382,10 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
                   id="feeStatus"
                   className="form-control"
                   value={feeStatus}
-                  onChange={(e) => setFeeStatus(e.target.value)}
+                  onChange={(e) => {
+                    setFeeStatus(e.target.value);
+                    setAmountPaidTouched(false);
+                  }}
                 >
                   <option value="Paid">Fully Paid</option>
                   <option value="Partial">Partially Paid</option>
@@ -383,20 +393,24 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
                 </select>
               </div>
 
-              {feeStatus === 'Partial' && (
-                <div className="form-group">
-                  <label htmlFor="amountPaid">Amount Paid (₹)</label>
-                  <input
-                    type="number"
-                    id="amountPaid"
-                    className="form-control"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    min="0"
-                    required
-                  />
-                </div>
-              )}
+              <div className="form-group">
+                <label htmlFor="amountPaid">Amount Paid (₹)</label>
+                <input
+                  type="number"
+                  id="amountPaid"
+                  className="form-control"
+                  value={amountPaid}
+                  onChange={(e) => {
+                    setAmountPaid(e.target.value);
+                    setAmountPaidTouched(true);
+                  }}
+                  min="0"
+                  required
+                />
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  Edit the current month payment amount here. Defaults to full amount for Paid and 0 for Unpaid.
+                </small>
+              </div>
             </div>
 
             <div className="form-group">
