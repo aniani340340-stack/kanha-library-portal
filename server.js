@@ -593,6 +593,7 @@ app.put(
       const {
         duration,
         start_date,
+        seat_type,
         rate,
         discount,
         total_fees,
@@ -600,6 +601,13 @@ app.put(
         amount_paid,
         remarks
       } = req.body;
+
+      const validSeatTypes = ['morning', 'evening', 'both'];
+      if (seat_type && !validSeatTypes.includes(seat_type)) {
+        return res.status(400).json({
+          error: 'Invalid shift time'
+        });
+      }
 
       const expiry_date =
         calculateExpiryDate(
@@ -611,6 +619,7 @@ app.put(
         duration,
         start_date,
         expiry_date,
+        ...(seat_type ? { seat_type } : {}),
         rate,
         discount,
         total_fees,
@@ -647,7 +656,10 @@ app.put(
             $set: updateFields,
             ...pushOp
           },
-          { new: true }
+          {
+            new: true,
+            runValidators: true
+          }
         );
 
       if (!student) {
@@ -658,7 +670,8 @@ app.put(
 
       res.json({
         message:
-          'Student renewed successfully'
+          'Student renewed successfully',
+        student
       });
     } catch (err) {
       res.status(500).json({

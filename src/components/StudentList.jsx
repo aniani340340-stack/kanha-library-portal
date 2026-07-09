@@ -48,6 +48,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
   const [discount, setDiscount] = useState('0');
   const [amountPaid, setAmountPaid] = useState('');
   const [feeStatus, setFeeStatus] = useState('Paid');
+  const [seatType, setSeatType] = useState('morning');
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -104,6 +105,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
     setDiscount('0');
     setAmountPaid(student.rate || '800');
     setFeeStatus('Paid');
+    setSeatType(student.seat_type || student.seat_time || 'morning');
     setRemarks('');
   };
 
@@ -155,6 +157,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
     const renewalPayload = {
       duration: Number(duration),
       start_date: startDate,
+      seat_type: seatType,
       rate: Number(rate),
       discount: Number(discount),
       total_fees: calculatedTotal,
@@ -615,6 +618,22 @@ _Kanha Library Management_ 📖`;
                     onChange={(e) => setStartDate(e.target.value)}
                     required
                   />
+                </div>
+              </div>
+
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+                <div className="form-group">
+                  <label>Shift Time</label>
+                  <select
+                    className="form-control"
+                    value={seatType}
+                    onChange={(e) => setSeatType(e.target.value)}
+                    required
+                  >
+                    <option value="morning">Only Morning</option>
+                    <option value="evening">Only Evening</option>
+                    <option value="both">Both</option>
+                  </select>
                 </div>
               </div>
 
