@@ -424,7 +424,7 @@ _Kanha Library Management_ 📖`;
                 </div>
 
                 <div className="form-group">
-                  <label>Amount Paid Now (₹)</label>
+                  <label>This Month Amount (₹)</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -436,7 +436,7 @@ _Kanha Library Management_ 📖`;
                     required
                   />
                   <small style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    Adjust the current month payment amount here.
+                    This amount will be used for the current renewal month and saved into payment records.
                   </small>
                 </div>
               </div>
