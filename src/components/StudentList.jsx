@@ -67,7 +67,7 @@ function StudentList({ students, onAddToast, onDataChange }) {
     } else if (feeStatus === 'Partial' && !amountPaidTouched) {
       setAmountPaid('0');
     }
-  }, [feeStatus, rate, duration, discount, calculatedTotal, amountPaidTouched]);
+  }, [feeStatus, rate, duration, discount, amountPaidTouched]);
 
   // Expiry dates helper
   const today = new Date();

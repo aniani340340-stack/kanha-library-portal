@@ -58,7 +58,7 @@ function RegistrationForm({ onAddToast, onDataChange, onNavigate }) {
     } else if (feeStatus === 'Partial' && !amountPaidTouched) {
       setAmountPaid('0');
     }
-  }, [feeStatus, rate, duration, discount, calculatedTotal, amountPaidTouched]);
+  }, [feeStatus, rate, duration, discount, amountPaidTouched]);
 
   // Webcam Controls
   const startCamera = async () => {

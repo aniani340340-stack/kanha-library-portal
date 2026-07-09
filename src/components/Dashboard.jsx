@@ -48,6 +48,7 @@ function Dashboard({ stats, onNavigate, onAddToast, onDataChange }) {
   }, [stats]);
 
   React.useEffect(() => {
+    const calculatedTotal = (Number(rate) * Number(duration)) - Number(discount);
     if (feeStatus === 'Paid') {
       if (!amountPaidTouched) {
         setAmountPaid(calculatedTotal.toString());
@@ -59,7 +60,7 @@ function Dashboard({ stats, onNavigate, onAddToast, onDataChange }) {
     } else if (feeStatus === 'Partial' && !amountPaidTouched) {
       setAmountPaid('0');
     }
-  }, [feeStatus, rate, duration, discount, calculatedTotal, amountPaidTouched]);
+  }, [feeStatus, rate, duration, discount, amountPaidTouched]);
 
   const urgentAlerts = allStudents.filter(student => {
     const expiry = new Date(student.expiry_date);
